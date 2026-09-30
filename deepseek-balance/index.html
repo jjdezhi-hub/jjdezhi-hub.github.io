@@ -233,19 +233,26 @@
       name: "open.er-api.com",
       url: "https://open.er-api.com/v6/latest/USD",
       pick: (j) => j && j.rates && j.rates.CNY,
-      date: (j) => {
-        const s = j && j.time_last_update_utc;
-        const d = s ? new Date(s) : null;
-        return d && !Number.isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : "";
-      },
+      date: (j) => isoDate(j && j.time_last_update_utc),
     },
     {
-      name: "Frankfurter（欧洲央行数据）",
-      url: "https://api.frankfurter.app/latest?from=USD&to=CNY",
+      name: "exchangerate-api.com",
+      url: "https://api.exchangerate-api.com/v4/latest/USD",
       pick: (j) => j && j.rates && j.rates.CNY,
+      date: (j) => isoDate(j && (j.time_last_update_utc || j.date)),
+    },
+    {
+      name: "currency-api (jsDelivr)",
+      url: "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json",
+      pick: (j) => j && j.usd && j.usd.cny,
       date: (j) => (j && j.date) || "",
     },
   ];
+
+  function isoDate(s) {
+    const d = s ? new Date(s) : null;
+    return d && !Number.isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : "";
+  }
   let rateMemo = null;
 
   function fetchRateFrom(provider) {
