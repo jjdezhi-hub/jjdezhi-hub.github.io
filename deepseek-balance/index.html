@@ -140,6 +140,12 @@
     margin-top:6px;font-size:38px;font-weight:700;letter-spacing:-.8px;
     font-variant-numeric:tabular-nums;
   }
+  .cny{
+    margin-top:2px;font-size:22px;font-weight:600;letter-spacing:-.3px;
+    color:#9db2ff;font-variant-numeric:tabular-nums;
+  }
+  .rate-hint{margin-top:5px;font-size:12px;color:var(--dim)}
+  .rate-hint.bad{color:#fcd34d}
   .rows{margin-top:15px;border-top:1px dashed rgba(255,255,255,.1);padding:12px 0 10px}
   .row{display:flex;justify-content:space-between;font-size:13.5px;color:var(--muted);padding:3.5px 0}
   .row b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
@@ -220,7 +226,94 @@
 
   const CURRENCY_NAME = { CNY: "人民币", USD: "美元" };
 
-  function render(data) {
+  /* ---------- USD → CNY 汇率（多来源竞速 + 本地缓存回退） ---------- */
+  const RATE_CACHE_KEY = "deepseek_balance_usd_cny_rate";
+  const RATE_PROVIDERS = [
+    {
+      name: "open.er-api.com",
+      url: "https://open.er-api.com/v6/latest/USD",
+      pick: (j) => j && j.rates && j.rates.CNY,
+      date: (j) => {
+        const s = j && j.time_last_update_utc;
+        const d = s ? new Date(s) : null;
+        return d && !Number.isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : "";
+      },
+    },
+    {
+      name: "Frankfurter（欧洲央行数据）",
+      url: "https://api.frankfurter.app/latest?from=USD&to=CNY",
+      pick: (j) => j && j.rates && j.rates.CNY,
+      date: (j) => (j && j.date) || "",
+    },
+  ];
+  let rateMemo = null;
+
+  function fetchRateFrom(provider) {
+    return fetch(provider.url, { cache: "no-store", signal: AbortSignal.timeout(6000) })
+      .then((res) => {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      })
+      .then((j) => {
+        const v = provider.pick(j);
+        if (typeof v !== "number" || !(v > 0)) throw new Error("invalid rate");
+        return { value: v, date: provider.date(j) || "", source: provider.name, cached: false };
+      });
+  }
+
+  function saveRateCache(r) {
+    try {
+      localStorage.setItem(RATE_CACHE_KEY, JSON.stringify({ value: r.value, date: r.date, source: r.source, ts: Date.now() }));
+    } catch (_) {}
+  }
+
+  function loadRateCache() {
+    try {
+      const raw = localStorage.getItem(RATE_CACHE_KEY);
+      if (!raw) return null;
+      const j = JSON.parse(raw);
+      if (j && typeof j.value === "number" && Date.now() - j.ts < 7 * 24 * 3600 * 1000) {
+        return { value: j.value, date: j.date || "", source: j.source || "", cached: true };
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  function getUsdCnyRate() {
+    if (rateMemo) return Promise.resolve(rateMemo);
+    return new Promise((resolve) => {
+      let remaining = RATE_PROVIDERS.length;
+      let settled = false;
+      const finish = (r) => {
+        if (!settled) { settled = true; resolve(r); }
+      };
+      for (const p of RATE_PROVIDERS) {
+        fetchRateFrom(p)
+          .then((r) => { rateMemo = r; saveRateCache(r); finish(r); })
+          .catch(() => {})
+          .finally(() => { remaining -= 1; if (remaining === 0) finish(null); });
+      }
+    }).then((r) => {
+      if (r) return r;
+      const cached = loadRateCache();
+      if (cached) rateMemo = cached;
+      return cached;
+    });
+  }
+
+  function renderCnyLine(info, cur, rate) {
+    if (cur !== "USD") return "";
+    if (!rate) return '<div class="rate-hint bad">人民币折算暂不可用（汇率获取失败）</div>';
+    const usd = Number.parseFloat(info.total_balance);
+    if (!Number.isFinite(usd)) return "";
+    return (
+      '<div class="cny">\u2248 \u00a5' + (usd * rate.value).toFixed(2) + "</div>" +
+      '<div class="rate-hint">按汇率 1 USD \u2248 ' + rate.value.toFixed(4) + " CNY 估算" +
+      (rate.cached ? "（缓存值）" : "") + "</div>"
+    );
+  }
+
+  function render(data, rate) {
     const infos = Array.isArray(data.balance_infos) ? data.balance_infos : [];
     const ok = data.is_available === true;
 
@@ -245,6 +338,7 @@
             '<span class="cur">' + (cur || "--") + curName + "</span>" +
           "</div>" +
           '<div class="total">' + fmtAmount(info.total_balance, cur) + "</div>" +
+          renderCnyLine(info, cur, rate) +
           '<div class="rows">' +
             '<div class="row"><span>充值余额</span><b>' + fmtAmount(info.topped_up_balance, cur) + "</b></div>" +
             '<div class="row"><span>赠金余额</span><b>' + fmtAmount(info.granted_balance, cur) + "</b></div>" +
@@ -301,8 +395,14 @@
       }
 
       const data = await res.json();
+
+      let rate = null;
+      const hasUsd = Array.isArray(data.balance_infos) &&
+        data.balance_infos.some((x) => x && x.currency === "USD");
+      if (hasUsd) rate = await getUsdCnyRate();
+
       hideAlert();
-      render(data);
+      render(data, rate);
 
       try {
         if (rememberChk.checked) {
@@ -314,7 +414,12 @@
         }
       } catch (_) {}
 
-      metaEl.textContent = "查询时间 " + new Date().toLocaleString("zh-CN", { hour12: false });
+      const timeStr = new Date().toLocaleString("zh-CN", { hour12: false });
+      metaEl.innerHTML =
+        (rate
+          ? "汇率数据：" + rate.source + (rate.date ? "（" + rate.date + "）" : "") + "<br>"
+          : "") +
+        "查询时间 " + timeStr;
     } catch (err) {
       if (err instanceof UserError) {
         showAlert("err", err.message);
@@ -355,6 +460,9 @@
   keyInput.addEventListener("input", () => {
     if (alertBox.classList.contains("warn")) hideAlert();
   });
+
+  // 页面空闲时预取汇率，点击“查询余额”时无需等待
+  window.setTimeout(() => { getUsdCnyRate(); }, 500);
 
   (function restore() {
     try {
