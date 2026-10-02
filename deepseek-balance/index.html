@@ -420,17 +420,48 @@
   .usage-help textarea:focus{border-color:rgba(96,122,255,.65);background:rgba(255,255,255,.06)}
   .usage-stats{margin-top:18px}
   .usage-stats .stat-value{font-size:19px}
+
+  /* ===== 用量摘要大卡片 + 胶囊切换（官网样式） ===== */
+  .usage-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px}
+  .usage-big-card{
+    padding:15px 15px 13px;border-radius:14px;min-width:0;
+    background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
+  }
+  .usage-big-label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .usage-big-value{
+    display:flex;align-items:baseline;gap:5px;min-width:0;
+    font-size:19px;font-weight:700;color:var(--text);
+    letter-spacing:-.4px;font-variant-numeric:tabular-nums;white-space:nowrap;
+  }
+  .usage-big-value > span:first-child{overflow:hidden;text-overflow:ellipsis}
+  .usage-big-unit{font-size:11.5px;font-weight:600;color:var(--dim);letter-spacing:.4px;flex:none}
+  .usage-pill{
+    display:flex;gap:3px;padding:4px;border-radius:10px;
+    background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);
+  }
+  .usage-pill-btn{
+    padding:6px 14px;border:0;border-radius:7px;background:transparent;
+    color:var(--muted);font-family:inherit;font-size:12.5px;font-weight:600;
+    cursor:pointer;transition:all .15s;white-space:nowrap;
+  }
+  .usage-pill-btn:hover{color:var(--text)}
+  .usage-pill-btn.active{
+    background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;
+    box-shadow:0 4px 12px rgba(77,107,254,.35);
+  }
+  .usage-chart-main{margin-top:0}
+  #usage-cost-chart{height:260px !important}
   .usage-updated{font-size:12px;color:var(--dim)}
   .usage-charts{margin-top:18px}
   .usage-charts-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:10px}
-  .usage-range-btn{
+  .usage-range-btn,.stats-range-btn{
     padding:7px 14px;border:1px solid rgba(255,255,255,.1);
     border-radius:9px;background:rgba(255,255,255,.04);
     color:var(--muted);font-size:12.5px;font-weight:600;
     cursor:pointer;transition:all .15s;font-family:inherit;
   }
-  .usage-range-btn:hover{background:rgba(255,255,255,.08);color:var(--text)}
-  .usage-range-btn.active{
+  .usage-range-btn:hover,.stats-range-btn:hover{background:rgba(255,255,255,.08);color:var(--text)}
+  .usage-range-btn.active,.stats-range-btn.active{
     background:rgba(77,107,254,.15);border-color:rgba(77,107,254,.4);color:#9db2ff;
   }
   .usage-chart-box{
@@ -457,7 +488,9 @@
     .stats-panel{grid-template-columns:repeat(2,1fr)}
     .date-range-picker{flex-direction:column;align-items:stretch}
     .date-range-picker input[type="date"],.btn-sm{width:100%}
+    .usage-summary{grid-template-columns:1fr}
     .usage-chart-box canvas{height:170px !important}
+    #usage-cost-chart{height:210px !important}
   }
 </style>
 </head>
@@ -540,23 +573,28 @@
   <section id="stats-section" class="tab-content" style="display:none">
     <div class="section-header">
       <h3>消费统计</h3>
+      <span class="usage-updated" id="stats-updated"></span>
     </div>
     <div class="stats-panel">
       <div class="stat-card">
-        <span class="stat-label">今日消费</span>
+        <span class="stat-label">今日消耗</span>
         <span class="stat-value" id="stat-today">--</span>
       </div>
       <div class="stat-card">
-        <span class="stat-label">本周消费</span>
+        <span class="stat-label">近 7 天消耗</span>
         <span class="stat-value" id="stat-week">--</span>
       </div>
       <div class="stat-card">
-        <span class="stat-label">本月消费</span>
+        <span class="stat-label">近 30 天消耗</span>
         <span class="stat-value" id="stat-month">--</span>
       </div>
       <div class="stat-card">
-        <span class="stat-label">日均消费</span>
+        <span class="stat-label">日均消耗</span>
         <span class="stat-value" id="stat-avg">--</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">累计消耗（自首次查询）</span>
+        <span class="stat-value" id="stat-total">--</span>
       </div>
     </div>
     <div id="stats-details"></div>
@@ -621,32 +659,33 @@
 
     <button id="query-usage-btn" class="btn" type="button">查询用量</button>
 
-    <!-- 汇总卡片 -->
-    <div class="stats-panel usage-stats" id="usage-stats" style="display:none">
-      <div class="stat-card"><span class="stat-label">今日消费</span><span class="stat-value" id="usage-today-cost">--</span></div>
-      <div class="stat-card"><span class="stat-label">近 7 天消费</span><span class="stat-value" id="usage-week-cost">--</span></div>
-      <div class="stat-card"><span class="stat-label">近 30 天消费</span><span class="stat-value" id="usage-month-cost">--</span></div>
-      <div class="stat-card"><span class="stat-label">今日 Tokens</span><span class="stat-value" id="usage-today-tokens">--</span></div>
-      <div class="stat-card"><span class="stat-label">近 7 天 Tokens</span><span class="stat-value" id="usage-week-tokens">--</span></div>
-      <div class="stat-card"><span class="stat-label">近 30 天 Tokens</span><span class="stat-value" id="usage-month-tokens">--</span></div>
+    <!-- 汇总卡片（官网样式：消费金额 / API 请求次数 / Tokens） -->
+    <div class="usage-summary" id="usage-stats" style="display:none">
+      <div class="usage-big-card">
+        <span class="usage-big-label">消费金额</span>
+        <div class="usage-big-value"><span id="usage-total-cost">--</span><span class="usage-big-unit">CNY</span></div>
+      </div>
+      <div class="usage-big-card">
+        <span class="usage-big-label">API 请求次数</span>
+        <div class="usage-big-value"><span id="usage-total-requests">--</span></div>
+      </div>
+      <div class="usage-big-card">
+        <span class="usage-big-label">Tokens</span>
+        <div class="usage-big-value"><span id="usage-total-tokens">--</span></div>
+      </div>
     </div>
 
-    <!-- 柱状图 -->
+    <!-- 消费金额柱状图 -->
     <div class="usage-charts" id="usage-charts" style="display:none">
       <div class="usage-charts-head">
-        <span class="usage-chart-title" style="margin:0">每日趋势</span>
-        <div class="time-range-selector">
-          <button class="usage-range-btn active" data-range="7" type="button">近 7 天</button>
-          <button class="usage-range-btn" data-range="30" type="button">近 30 天</button>
+        <span class="usage-chart-title" style="margin:0">消费金额（CNY） <b id="usage-chart-total" style="color:var(--text);font-weight:600"></b></span>
+        <div class="usage-pill">
+          <button class="usage-pill-btn active" data-range="7" type="button">近 7 天</button>
+          <button class="usage-pill-btn" data-range="30" type="button">近 30 天</button>
         </div>
       </div>
-      <div class="usage-chart-box">
-        <div class="usage-chart-title">每日消费（¥）</div>
+      <div class="usage-chart-box usage-chart-main">
         <canvas id="usage-cost-chart"></canvas>
-      </div>
-      <div class="usage-chart-box">
-        <div class="usage-chart-title">每日 Token 用量（按类型堆叠）</div>
-        <canvas id="usage-token-chart"></canvas>
       </div>
     </div>
 
@@ -679,11 +718,9 @@
     <button class="btn-primary" id="show-add-form" type="button" style="width:100%;margin-top:14px">+ 添加新账户</button>
   </div>
 </div>
-
-<!-- Chart.js CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-<script src="app1.js?v=20261002b"></script>
-<script src="app2.js?v=20261002b"></script>
+<script src="app1.js?v=20261002c"></script>
+<script src="app2.js?v=20261002c"></script>
 </body>
 </html>
