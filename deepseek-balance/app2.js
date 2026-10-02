@@ -1,4 +1,4 @@
-  /* ========== 用量统计（平台内部接口,经本地代理） ========== */
+/* ========== 用量统计（平台内部接口,经本地代理） ========== */
   const LS_USAGE_TOKEN = "deepseek_usage_token_v1";
   const LS_USAGE_REMEMBER = "deepseek_usage_remember_v1";
   const USAGE_CMD = "copy(JSON.parse(localStorage.userToken).value)";
@@ -15,7 +15,6 @@
   let usageDays = null; // { 'YYYY-MM-DD': {cost,tokens,hit,miss,resp,requests} }
   let usageRange = 7;
   let usageCostChart = null;
-  let usageTokenChart = null;
 
   function pad2(n) { return n < 10 ? "0" + n : "" + n; }
   function dayKeyOf(d) { return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()); }
@@ -333,18 +332,6 @@
 
   function renderUsage(parsed, source) {
     usageDays = parsed.days || {};
-    const todayKey = dayKeyOf(new Date());
-    const todayRec = usageDays[todayKey] || emptyUsageRec();
-    const week = sumUsageDates(usageWindowDates(7));
-    const month = sumUsageDates(usageWindowDates(30));
-
-    $("#usage-today-cost").textContent = fmtCost(todayRec.cost);
-    $("#usage-week-cost").textContent = fmtCost(week.cost);
-    $("#usage-month-cost").textContent = fmtCost(month.cost);
-    $("#usage-today-tokens").textContent = fmtTokens(todayRec.tokens);
-    $("#usage-week-tokens").textContent = fmtTokens(week.tokens);
-    $("#usage-month-tokens").textContent = fmtTokens(month.tokens);
-
     usageStatsEl.style.display = "";
     usageChartsEl.style.display = "";
 
@@ -367,7 +354,7 @@
       maintainAspectRatio: false,
       animation: { duration: 250 },
       plugins: {
-        legend: { labels: { color: "#8b94a8", font: { size: 11 }, boxWidth: 10, boxHeight: 10 } },
+        legend: { display: false },
         tooltip: {
           backgroundColor: "rgba(17,24,39,.96)",
           titleColor: "#e9edf6",
@@ -393,10 +380,15 @@
     const dates = usageWindowDates(usageRange);
     const labels = dates.map((d) => d.slice(5).replace("-", "/"));
     const costData = dates.map((d) => Number((((usageDays[d] || {}).cost || 0)).toFixed(4)));
-    const hit = dates.map((d) => (usageDays[d] || {}).hit || 0);
-    const miss = dates.map((d) => (usageDays[d] || {}).miss || 0);
-    const resp = dates.map((d) => (usageDays[d] || {}).resp || 0);
-    const maxThickness = usageRange === 7 ? 42 : 16;
+    const maxThickness = usageRange === 7 ? 48 : 18;
+
+    // 顶部大卡片：当前时间范围的汇总（官网样式）
+    const sum = sumUsageDates(dates);
+    $("#usage-total-cost").textContent = fmtCost(sum.cost);
+    $("#usage-total-requests").textContent = sum.requests.toLocaleString("zh-CN");
+    $("#usage-total-tokens").textContent = sum.tokens.toLocaleString("zh-CN");
+    const totalEl = $("#usage-chart-total");
+    if (totalEl) totalEl.textContent = fmtCost(sum.cost);
 
     if (usageCostChart) { usageCostChart.destroy(); usageCostChart = null; }
     usageCostChart = new Chart($("#usage-cost-chart"), {
@@ -406,27 +398,13 @@
         datasets: [{
           label: "消费",
           data: costData,
-          backgroundColor: "rgba(77,107,254,.8)",
+          backgroundColor: "rgba(77,107,254,.9)",
           hoverBackgroundColor: "rgba(124,92,255,.95)",
-          borderRadius: 4,
+          borderRadius: 5,
           maxBarThickness: maxThickness
         }]
       },
       options: usageChartBaseOptions((v) => fmtCost(v))
-    });
-
-    if (usageTokenChart) { usageTokenChart.destroy(); usageTokenChart = null; }
-    usageTokenChart = new Chart($("#usage-token-chart"), {
-      type: "bar",
-      data: {
-        labels,
-        datasets: [
-          { label: "缓存命中", data: hit, backgroundColor: "rgba(96,165,250,.85)", stack: "t", maxBarThickness: maxThickness },
-          { label: "缓存未命中", data: miss, backgroundColor: "rgba(167,139,250,.85)", stack: "t", maxBarThickness: maxThickness },
-          { label: "输出", data: resp, backgroundColor: "rgba(52,211,153,.85)", stack: "t", maxBarThickness: maxThickness }
-        ]
-      },
-      options: usageChartBaseOptions((v) => fmtTokensFull(v) + " tokens")
     });
   }
 
@@ -606,9 +584,9 @@
       if (e.key === "Enter") queryUsage();
     });
 
-    document.querySelectorAll(".usage-range-btn").forEach((btn) => {
+    document.querySelectorAll(".usage-pill-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
-        document.querySelectorAll(".usage-range-btn").forEach((b) => b.classList.remove("active"));
+        document.querySelectorAll(".usage-pill-btn").forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
         usageRange = parseInt(btn.dataset.range, 10) || 7;
         renderUsageCharts();
@@ -656,18 +634,24 @@
           targetContent = $("#result");
         } else if (targetTab === 'history') {
           targetContent = $("#history-section");
-          updateHistoryView();
         } else if (targetTab === 'stats') {
           targetContent = $("#stats-section");
-          updateStatsView();
         } else if (targetTab === 'usage') {
           targetContent = $("#usage-section");
-          if (usageDays) renderUsageCharts(); // 切回标签时补渲染,确保图表尺寸正确
         }
 
         if (targetContent) {
           targetContent.classList.add('active');
           targetContent.style.display = 'block';
+        }
+
+        // 先显示容器、再渲染图表,确保 canvas 尺寸正确
+        if (targetTab === 'history') {
+          updateHistoryView();
+        } else if (targetTab === 'stats') {
+          updateStatsView();
+        } else if (targetTab === 'usage') {
+          if (usageDays) renderUsageCharts(); // 切回标签时补渲染,确保图表尺寸正确
         }
       });
     });
