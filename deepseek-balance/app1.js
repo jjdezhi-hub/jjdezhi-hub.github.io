@@ -162,7 +162,7 @@
   function renderAccountSelector() {
     const accounts = getAccounts();
 
-    accountSelector.innerHTML = '<option value="">选择或输入API Key</option>' +
+    accountSelector.innerHTML = '<option value="">选择账户（点 + 添加）</option>' +
       accounts.map(acc => {
         const masked = acc.apiKey.substring(0, 7) + '...' + acc.apiKey.slice(-4);
         return `<option value="${acc.id}">${acc.name} (${masked})</option>`;
@@ -195,7 +195,10 @@
             <div class="account-key">${masked}</div>
             <div class="account-meta">${recordCount} 条历史记录</div>
           </div>
-          <button class="btn-delete" onclick="handleDeleteAccount('${acc.id}')">删除</button>
+          <div class="account-actions">
+            <button class="btn-edit" onclick="handleRenameAccount('${acc.id}')">重命名</button>
+            <button class="btn-delete" onclick="handleDeleteAccount('${acc.id}')">删除</button>
+          </div>
         </div>
       `;
     }).join('');
@@ -218,6 +221,26 @@
       showAlert('info', '账户已删除');
       setTimeout(hideAlert, 2000);
     }
+  };
+
+  window.handleRenameAccount = function(id) {
+    const accounts = getAccounts();
+    const account = accounts.find(a => a.id === id);
+    if (!account) return;
+
+    const name = prompt('修改账户名称：', account.name);
+    if (name == null) return;
+
+    const trimmed = name.trim();
+    if (!trimmed) {
+      alert('账户名称不能为空');
+      return;
+    }
+
+    account.name = trimmed;
+    saveAccounts(accounts);
+    renderAccountSelector();
+    renderAccountList();
   };
 
   function fmtAmount(raw, currency) {
@@ -453,30 +476,7 @@
     }
   }
 
-  eyeBtn.innerHTML = EYE_OPEN;
-  eyeBtn.addEventListener("click", () => {
-    const show = keyInput.type === "password";
-    keyInput.type = show ? "text" : "password";
-    eyeBtn.innerHTML = show ? EYE_CLOSED : EYE_OPEN;
-    keyInput.focus();
-  });
-
-  rememberChk.addEventListener("change", () => {
-    if (!rememberChk.checked) {
-      try {
-        localStorage.removeItem(LS_KEY);
-        localStorage.removeItem(LS_REMEMBER);
-      } catch (_) {}
-    }
-  });
-
-  queryBtn.addEventListener("click", query);
-  keyInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") query();
-  });
-  keyInput.addEventListener("input", () => {
-    if (alertBox.classList.contains("warn")) hideAlert();
-  });
+  /* 注：眼睛按钮 / 记住Key / 查询按钮的绑定统一在 init() 中注册,此处不再重复绑定 */
 
   /* ========== 历史趋势图表 ========== */
   function updateHistoryView() {
