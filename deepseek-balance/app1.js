@@ -542,6 +542,13 @@
       }
     });
 
+    // 基准线：全部历史中第一次查询到的 CNY 余额（作为参考水平线）
+    let baseBal = null;
+    for (const r of history) {
+      const i = (r.data?.balance_infos || []).find(x => x.currency === 'CNY');
+      if (i) { baseBal = parseFloat(i.total_balance); break; }
+    }
+
     if (currentChart) {
       currentChart.destroy();
     }
@@ -571,7 +578,17 @@
             fill: true,
             pointRadius: 4,
             pointHoverRadius: 6
-          }
+          },
+          ...(baseBal != null && !isNaN(baseBal) ? [{
+            label: '基准线（首次查询 ¥' + baseBal.toFixed(2) + '）',
+            data: labels.map(() => baseBal),
+            borderColor: 'rgba(251, 191, 36, 0.6)',
+            borderDash: [6, 6],
+            borderWidth: 1.5,
+            pointRadius: 0,
+            fill: false,
+            tension: 0
+          }] : [])
         ]
       },
       options: {
@@ -650,75 +667,227 @@
     }).join('');
   }
 
-  /* ========== 消费统计 ========== */
+  /* ========== 消费统计(以首次查询为基准推算) ========== */
+  let statsChart = null;
+  let statsMode = "day";
+
+  function dayKey(ts) {
+    const d = new Date(ts);
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+
+  function nextDayStart(ts) {
+    const d = new Date(ts);
+    d.setDate(d.getDate() + 1);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }
+
+  function weekStartKey(ts) {
+    const d = new Date(ts);
+    d.setHours(0, 0, 0, 0);
+    const dow = (d.getDay() + 6) % 7; // 周一 = 0
+    d.setDate(d.getDate() - dow);
+    return dayKey(d.getTime());
+  }
+
+  /* 推算:相邻两次查询的余额差,按时间均匀分摊到每一天(余额增加视为充值,不计消耗) */
+  function computeConsumption(history) {
+    const pts = history
+      .map((r) => {
+        const cny = (r.data?.balance_infos || []).find((i) => i.currency === "CNY");
+        return cny ? { t: r.timestamp, bal: parseFloat(cny.total_balance) || 0 } : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.t - b.t);
+
+    const out = { points: pts, daily: {}, days: [], total: 0, topups: [], first: pts[0] || null, last: pts[pts.length - 1] || null, coverageDays: 0 };
+
+    for (let i = 1; i < pts.length; i++) {
+      const p1 = pts[i - 1], p2 = pts[i];
+      const dt = p2.t - p1.t;
+      if (dt <= 0) continue;
+      const delta = p1.bal - p2.bal;
+      if (delta <= 0) {
+        if (delta < -0.005) out.topups.push({ t: p2.t, amount: -delta }); // 余额增加:疑似充值
+        continue;
+      }
+      const rate = delta / dt; // 每秒消耗
+      let cursor = p1.t;
+      while (cursor < p2.t) {
+        const segEnd = Math.min(p2.t, nextDayStart(cursor));
+        const key = dayKey(cursor);
+        if (!out.daily[key]) out.daily[key] = { consume: 0, count: 0, lastBal: null };
+        out.daily[key].consume += rate * (segEnd - cursor);
+        cursor = segEnd;
+      }
+      out.total += delta;
+    }
+
+    for (const p of pts) {
+      const k = dayKey(p.t);
+      if (out.daily[k]) { out.daily[k].count++; out.daily[k].lastBal = p.bal; }
+    }
+
+    out.days = Object.keys(out.daily).sort().map((k) => ({ date: k, consume: out.daily[k].consume, count: out.daily[k].count, lastBal: out.daily[k].lastBal }));
+    out.coverageDays = out.days.length;
+    return out;
+  }
+
+  function aggregateConsumption(days, mode, now) {
+    if (mode === "week" || mode === "month") {
+      const map = {};
+      for (const d of days) {
+        const ts = new Date(d.date + "T12:00:00").getTime();
+        const k = mode === "week" ? weekStartKey(ts) : d.date.slice(0, 7);
+        map[k] = (map[k] || 0) + d.consume;
+      }
+      const keys = Object.keys(map).sort().slice(mode === "week" ? -12 : -6);
+      return keys.map((k) => ({ label: mode === "week" ? k.slice(5).replace("-", "/") + " 周" : k, value: map[k] }));
+    }
+    // 按天:最近 30 个自然日
+    const cutoff = nextDayStart(now - 30 * 86400000);
+    return days
+      .filter((d) => new Date(d.date + "T12:00:00").getTime() >= cutoff)
+      .map((d) => ({ label: d.date.slice(5).replace("-", "/"), value: d.consume }));
+  }
+
+  function renderStatsChart(c, mode) {
+    const canvas = $("#stats-chart");
+    if (!canvas) return;
+    if (statsChart) { statsChart.destroy(); statsChart = null; }
+    const items = aggregateConsumption(c.days, mode, Date.now());
+    if (!items.length) return;
+
+    statsChart = new Chart(canvas.getContext("2d"), {
+      type: "bar",
+      data: {
+        labels: items.map((i) => i.label),
+        datasets: [{
+          label: mode === "day" ? "每日消耗" : mode === "week" ? "每周消耗" : "每月消耗",
+          data: items.map((i) => +i.value.toFixed(3)),
+          backgroundColor: "rgba(124, 92, 255, 0.55)",
+          borderColor: "rgba(124, 92, 255, 0.9)",
+          borderWidth: 1,
+          borderRadius: 6,
+          maxBarThickness: 34
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: "rgba(17, 24, 39, 0.95)",
+            titleColor: "#e5e7eb",
+            bodyColor: "#d1d5db",
+            borderColor: "rgba(255, 255, 255, 0.1)",
+            borderWidth: 1,
+            callbacks: { label: (ctx) => "¥" + Number(ctx.parsed.y).toFixed(2) }
+          }
+        },
+        scales: {
+          y: { beginAtZero: true, ticks: { color: "#9ca3af", callback: (v) => "¥" + v }, grid: { color: "rgba(255, 255, 255, 0.05)" } },
+          x: { ticks: { color: "#9ca3af", maxRotation: 45 }, grid: { display: false } }
+        }
+      }
+    });
+  }
+
   function updateStatsView() {
+    const updatedEl = $("#stats-updated");
+    if (updatedEl) updatedEl.textContent = "";
+
+    const CARD_IDS = ["#stat-today", "#stat-week", "#stat-month", "#stat-avg", "#stat-total"];
+    const setCards = (text) => CARD_IDS.forEach((s) => { const el = $(s); if (el) { el.textContent = text; el.classList.remove("negative"); } });
+
     if (!currentAccountId) {
-      $("#stat-today").textContent = '--';
-      $("#stat-week").textContent = '--';
-      $("#stat-month").textContent = '--';
-      $("#stat-avg").textContent = '--';
+      setCards("--");
+      $("#stats-details").innerHTML = "";
       return;
     }
 
     const history = getHistory(currentAccountId);
     if (!history || history.length < 2) {
-      $("#stat-today").textContent = '无数据';
-      $("#stat-week").textContent = '无数据';
-      $("#stat-month").textContent = '无数据';
-      $("#stat-avg").textContent = '无数据';
+      setCards("无数据");
+      $("#stats-details").innerHTML =
+        '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><polyline points="7 10 12 5 17 8 21 4"/></svg>' +
+        "<div>需要至少 2 次余额查询才能开始推算消耗</div>" +
+        '<div style="margin-top:8px;font-size:12px;color:var(--dim)">每次查询余额都会自动记录一次,建议每天查询 1 次。<br>当前已有 ' + (history ? history.length : 0) + " 次记录</div></div>";
+      return;
+    }
+
+    const c = computeConsumption(history);
+    if (!c.points || c.points.length < 2) {
+      setCards("无数据");
+      $("#stats-details").innerHTML = '<div class="empty-state"><div>历史记录中没有人民币(CNY)余额数据,无法推算。</div></div>';
       return;
     }
 
     const now = Date.now();
-    const oneDayAgo = now - 24 * 3600 * 1000;
-    const oneWeekAgo = now - 7 * 24 * 3600 * 1000;
-    const oneMonthAgo = now - 30 * 24 * 3600 * 1000;
+    const todayK = dayKey(now);
+    const windowKeys = (n) => { const s = new Set(); for (let i = 0; i < n; i++) s.add(dayKey(now - i * 86400000)); return s; };
+    const sumWindow = (n) => { const keys = windowKeys(n); let sum = 0, hit = 0; for (const d of c.days) if (keys.has(d.date)) { sum += d.consume; hit++; } return { sum, hit }; };
 
-    function calcConsumption(startTime) {
-      const records = history.filter(h => h.timestamp >= startTime).sort((a, b) => a.timestamp - b.timestamp);
-      if (records.length < 2) return null;
-
-      const first = records[0];
-      const last = records[records.length - 1];
-
-      const firstCny = first.data?.balance_infos?.find(i => i.currency === 'CNY');
-      const lastCny = last.data?.balance_infos?.find(i => i.currency === 'CNY');
-
-      if (!firstCny || !lastCny) return null;
-
-      const diff = parseFloat(firstCny.total_balance) - parseFloat(lastCny.total_balance);
-      return diff;
-    }
-
-    const todayConsume = calcConsumption(oneDayAgo);
-    const weekConsume = calcConsumption(oneWeekAgo);
-    const monthConsume = calcConsumption(oneMonthAgo);
-
-    const formatStat = (val) => {
-      if (val === null) return '无数据';
-      if (val < 0.01) return '¥0.00';
-      return `¥${val.toFixed(2)}`;
+    const fmtMoney = (v) => "¥" + v.toFixed(2);
+    const setVal = (sel, v, has) => {
+      const el = $(sel);
+      if (!el) return;
+      if (!has) { el.textContent = "无数据"; el.classList.remove("negative"); return; }
+      el.textContent = fmtMoney(v);
+      if (v > 0.005) el.classList.add("negative"); else el.classList.remove("negative");
     };
 
-    $("#stat-today").textContent = formatStat(todayConsume);
-    $("#stat-week").textContent = formatStat(weekConsume);
-    $("#stat-month").textContent = formatStat(monthConsume);
+    const today = c.daily[todayK];
+    const w7 = sumWindow(7);
+    const w30 = sumWindow(30);
 
-    // 日均消费
-    if (monthConsume !== null && monthConsume > 0) {
-      const daysInPeriod = Math.max(1, (now - oneMonthAgo) / (24 * 3600 * 1000));
-      const avgDaily = monthConsume / daysInPeriod;
-      $("#stat-avg").textContent = formatStat(avgDaily);
-    } else {
-      $("#stat-avg").textContent = '无数据';
+    setVal("#stat-today", today ? today.consume : 0, !!today);
+    setVal("#stat-week", w7.sum, w7.hit > 0);
+    setVal("#stat-month", w30.sum, w30.hit > 0);
+    setVal("#stat-avg", c.total / Math.max(1, c.coverageDays), true);
+    setVal("#stat-total", c.total, true);
+
+    if (updatedEl) updatedEl.textContent = "共 " + c.points.length + " 次查询 · 覆盖 " + c.coverageDays + " 天";
+
+    const f = c.first;
+    const l = c.last;
+    const fTime = new Date(f.t).toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
+
+    const rows = c.days.slice(-31).reverse().map((d) =>
+      "<tr><td>" + d.date + "</td><td>" + fmtMoney(d.consume) + "</td><td>" + d.count + "</td><td>" + (d.lastBal != null ? fmtMoney(d.lastBal) : "—") + "</td></tr>"
+    ).join("");
+
+    let topupNote = "";
+    if (c.topups.length) {
+      const ts = c.topups.slice(-3).map((u) => new Date(u.t).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) + " +¥" + u.amount.toFixed(2)).join("、");
+      topupNote = '<div class="usage-note">检测到余额增加（疑似充值），该时段不计入消耗：' + ts + (c.topups.length > 3 ? " 等共 " + c.topups.length + " 次" : "") + "</div>";
     }
 
-    if (todayConsume !== null && todayConsume > 0) $("#stat-today").classList.add('negative');
-    else $("#stat-today").classList.remove('negative');
+    const modeBtn = (mode, text) => '<button class="stats-range-btn' + (statsMode === mode ? " active" : "") + '" data-mode="' + mode + '" type="button">' + text + "</button>";
 
-    if (weekConsume !== null && weekConsume > 0) $("#stat-week").classList.add('negative');
-    else $("#stat-week").classList.remove('negative');
+    $("#stats-details").innerHTML =
+      '<div class="usage-note"><b>推算说明：</b>消耗由你的余额查询记录推算——两次查询之间按时间均匀分摊,查询越频繁越准(建议每天查询 1 次)。<br>' +
+      "基准：首次查询 " + fmtMoney(f.bal) + "（" + fTime + "） · 当前 " + fmtMoney(l.bal) + " · 累计消耗 " + fmtMoney(c.total) + "</div>" +
+      topupNote +
+      '<div class="usage-chart-box">' +
+        '<div class="usage-charts-head" style="margin-bottom:6px">' +
+          '<span class="usage-chart-title" style="margin:0">消耗趋势</span>' +
+          '<div class="time-range-selector">' + modeBtn("day", "按天") + modeBtn("week", "按周") + modeBtn("month", "按月") + "</div>" +
+        "</div>" +
+        '<canvas id="stats-chart"></canvas>' +
+      "</div>" +
+      '<div class="usage-table-wrap" style="margin-top:14px;max-height:300px"><table class="usage-table"><thead><tr><th>日期</th><th>消耗（¥）</th><th>查询次数</th><th>期末余额</th></tr></thead><tbody>' + rows + "</tbody></table></div>";
 
-    if (monthConsume !== null && monthConsume > 0) $("#stat-month").classList.add('negative');
-    else $("#stat-month").classList.remove('negative');
+    document.querySelectorAll(".stats-range-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".stats-range-btn").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        statsMode = btn.dataset.mode;
+        renderStatsChart(c, statsMode);
+      });
+    });
+
+    renderStatsChart(c, statsMode);
   }
