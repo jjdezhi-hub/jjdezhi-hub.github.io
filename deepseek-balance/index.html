@@ -151,9 +151,317 @@
   .row b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
 
   .meta{margin-top:15px;text-align:center;font-size:12px;color:var(--dim)}
+
+  /* ========== 多账户管理 ========== */
+  .account-panel{
+    margin-bottom:16px;padding:12px 14px;border-radius:14px;
+    background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);
+  }
+  .account-header{display:flex;align-items:center;gap:10px}
+  .account-select{
+    flex:1;height:44px;padding:0 14px;border-radius:11px;
+    border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.04);
+    color:var(--text);font-size:14px;font-family:inherit;outline:none;
+    transition:border-color .18s,background .18s;cursor:pointer;
+  }
+  .account-select:focus{border-color:rgba(96,122,255,.65);background:rgba(255,255,255,.06)}
+  .account-select option{background:#0d1321;color:var(--text)}
+  .icon-btn{
+    width:44px;height:44px;border-radius:11px;border:1px solid rgba(255,255,255,.1);
+    background:rgba(255,255,255,.045);color:var(--muted);font-size:18px;
+    cursor:pointer;display:grid;place-items:center;transition:all .15s;
+  }
+  .icon-btn:hover{background:rgba(255,255,255,.09);color:var(--text);border-color:rgba(255,255,255,.18)}
+
+  /* ========== 模态框 ========== */
+  .modal{
+    display:none;position:fixed;inset:0;z-index:9999;
+    background:rgba(0,0,0,.75);backdrop-filter:blur(8px);
+    align-items:center;justify-content:center;animation:fadeIn .2s ease;
+  }
+  .modal.show{display:flex}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  .modal-content{
+    max-width:580px;width:92%;max-height:85vh;overflow-y:auto;
+    padding:30px 28px;border-radius:20px;
+    background:linear-gradient(180deg,rgba(22,30,48,.98),rgba(13,19,33,.98));
+    border:1px solid rgba(255,255,255,.14);
+    box-shadow:0 40px 90px rgba(0,0,0,.65);
+    animation:slideUp .25s ease;
+  }
+  @keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+  .modal-content h2{margin:0 0 20px;font-size:21px;font-weight:600;color:var(--text)}
+  .modal-close{
+    position:absolute;top:16px;right:16px;width:36px;height:36px;
+    border:0;border-radius:9px;background:rgba(255,255,255,.06);
+    color:var(--dim);font-size:20px;cursor:pointer;
+    display:grid;place-items:center;transition:all .15s;
+  }
+  .modal-close:hover{background:rgba(255,255,255,.12);color:var(--text)}
+
+  .account-list-item{
+    padding:14px 16px;margin-bottom:10px;border-radius:13px;
+    background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+  }
+  .account-info{flex:1;min-width:0}
+  .account-name{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
+  .account-key{
+    font-size:12px;color:var(--dim);font-family:'Consolas','Monaco',monospace;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .account-actions{display:flex;gap:6px}
+  .btn-icon{
+    width:34px;height:34px;border:0;border-radius:9px;
+    background:rgba(255,255,255,.05);color:var(--muted);
+    cursor:pointer;font-size:16px;transition:all .15s;
+    display:grid;place-items:center;
+  }
+  .btn-icon:hover{background:rgba(248,113,113,.15);color:#fca5a5}
+
+  .add-account-form{
+    padding:18px;margin-top:18px;border-radius:14px;
+    background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.08);
+  }
+  .form-group{margin-bottom:14px}
+  .form-group label{display:block;margin-bottom:6px;font-size:13px;color:var(--muted);font-weight:600}
+  .form-group input{
+    width:100%;height:44px;padding:0 14px;border-radius:11px;
+    border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);
+    color:var(--text);font-size:14px;font-family:inherit;outline:none;
+    transition:border-color .18s,background .18s;
+  }
+  .form-group input:focus{border-color:rgba(96,122,255,.65);background:rgba(255,255,255,.06)}
+  .form-actions{display:flex;gap:10px;margin-top:16px}
+  .btn-secondary{
+    flex:1;height:44px;border:0;border-radius:11px;
+    background:rgba(255,255,255,.08);color:var(--text);
+    font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;
+    transition:all .15s;
+  }
+  .btn-secondary:hover{background:rgba(255,255,255,.14)}
+  .btn-primary{
+    flex:1;height:44px;border:0;border-radius:11px;
+    background:linear-gradient(135deg,var(--brand),var(--brand2));
+    color:#fff;font-family:inherit;font-size:14px;font-weight:600;
+    cursor:pointer;box-shadow:0 8px 20px rgba(77,107,254,.28);
+    transition:all .15s;
+  }
+  .btn-primary:hover{filter:brightness(1.08)}
+  .btn-primary:disabled{opacity:.6;cursor:not-allowed;filter:none}
+
+  /* ========== 标签页导航 ========== */
+  .tabs{
+    display:flex;gap:6px;margin:20px 0 18px;padding:5px;
+    background:rgba(255,255,255,.03);border-radius:12px;
+    border:1px solid rgba(255,255,255,.06);
+  }
+  .tab{
+    flex:1;height:40px;border:0;border-radius:9px;background:transparent;
+    color:var(--muted);font-family:inherit;font-size:13.5px;font-weight:600;
+    cursor:pointer;transition:all .15s;letter-spacing:.2px;
+  }
+  .tab:hover{background:rgba(255,255,255,.05);color:var(--text)}
+  .tab.active{
+    background:linear-gradient(135deg,rgba(77,107,254,.18),rgba(124,92,255,.14));
+    color:#aab4cc;border:1px solid rgba(77,107,254,.35);
+  }
+
+  .tab-content{display:none}
+  .tab-content.active{display:block;animation:rise .3s ease}
+
+  /* ========== 历史趋势 ========== */
+  .section-header{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:16px;flex-wrap:wrap;gap:12px;
+  }
+  .section-header h3{margin:0;font-size:17px;font-weight:600;color:var(--text)}
+  .time-range-selector{display:flex;gap:6px}
+  .range-btn{
+    padding:7px 14px;border:1px solid rgba(255,255,255,.1);
+    border-radius:9px;background:rgba(255,255,255,.04);
+    color:var(--muted);font-size:12.5px;font-weight:600;
+    cursor:pointer;transition:all .15s;font-family:inherit;
+  }
+  .range-btn:hover{background:rgba(255,255,255,.08);color:var(--text)}
+  .range-btn.active{
+    background:rgba(77,107,254,.15);border-color:rgba(77,107,254,.4);color:#9db2ff;
+  }
+
+  .chart-container{
+    position:relative;padding:20px 16px;margin-bottom:18px;
+    border-radius:15px;background:rgba(255,255,255,.025);
+    border:1px solid rgba(255,255,255,.07);min-height:280px;
+  }
+  .chart-placeholder{
+    text-align:center;padding:60px 20px;color:var(--dim);font-size:13px;
+  }
+  .chart-placeholder svg{
+    width:48px;height:48px;margin-bottom:12px;opacity:.4;
+  }
+
+  .history-list{margin-top:16px}
+  .history-item{
+    padding:12px 15px;margin-bottom:8px;border-radius:12px;
+    background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+  }
+  .history-time{font-size:12.5px;color:var(--dim)}
+  .history-balance{font-size:15px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums}
+  .history-change{
+    font-size:12px;padding:3px 9px;border-radius:7px;font-weight:600;
+  }
+  .history-change.positive{background:rgba(52,211,153,.11);color:#6ee7b7}
+  .history-change.negative{background:rgba(248,113,113,.11);color:#fca5a5}
+
+  /* ========== 消费统计 ========== */
+  .stats-panel{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+    gap:12px;margin-bottom:18px;
+  }
+  .stat-card{
+    padding:16px 14px;border-radius:13px;
+    background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);
+  }
+  .stat-label{display:block;font-size:12px;color:var(--dim);margin-bottom:6px}
+  .stat-value{
+    display:block;font-size:20px;font-weight:700;color:var(--text);
+    letter-spacing:-.3px;font-variant-numeric:tabular-nums;
+  }
+  .stat-value.negative{color:#fca5a5}
+  .stat-value.positive{color:#6ee7b7}
+
+  /* ========== 用量统计辅助样式 ========== */
+  .date-range-picker{
+    display:flex;align-items:center;gap:10px;margin-bottom:18px;
+    padding:14px;border-radius:13px;background:rgba(255,255,255,.03);
+    border:1px solid rgba(255,255,255,.07);flex-wrap:wrap;
+  }
+  .date-range-picker input[type="date"]{
+    height:40px;padding:0 12px;border-radius:10px;
+    border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);
+    color:var(--text);font-size:13px;font-family:inherit;outline:none;
+    transition:border-color .18s;
+  }
+  .date-range-picker input[type="date"]:focus{border-color:rgba(96,122,255,.65)}
+  .date-range-picker span{font-size:13px;color:var(--muted)}
+  .btn-sm{
+    height:40px;padding:0 18px;border:0;border-radius:10px;
+    background:linear-gradient(135deg,var(--brand),var(--brand2));
+    color:#fff;font-family:inherit;font-size:13.5px;font-weight:600;
+    cursor:pointer;transition:all .15s;box-shadow:0 6px 16px rgba(77,107,254,.26);
+  }
+  .btn-sm:hover{filter:brightness(1.08)}
+  .btn-sm:disabled{opacity:.6;cursor:not-allowed;filter:none}
+
+  .usage-table{
+    width:100%;border-collapse:collapse;font-size:13px;
+    background:rgba(255,255,255,.025);border-radius:12px;overflow:hidden;
+  }
+  .usage-table th{
+    padding:12px 14px;text-align:left;background:rgba(255,255,255,.05);
+    color:var(--muted);font-weight:600;font-size:12px;letter-spacing:.3px;
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .usage-table td{
+    padding:11px 14px;color:var(--text);border-bottom:1px solid rgba(255,255,255,.05);
+  }
+  .usage-table tr:last-child td{border-bottom:none}
+  .usage-table tr:hover{background:rgba(255,255,255,.03)}
+
+  .empty-state{
+    text-align:center;padding:50px 20px;color:var(--dim);font-size:13.5px;
+  }
+  .empty-state svg{width:56px;height:56px;margin-bottom:14px;opacity:.35}
+
+  /* ========== 用量统计（平台接口,经本地代理） ========== */
+  .usage-token-panel{
+    margin-bottom:16px;padding:14px 15px;border-radius:13px;
+    background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
+  }
+  .usage-token-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .usage-token-title{font-size:13px;font-weight:600;color:var(--muted)}
+  .usage-token-status{font-size:12px;color:var(--dim)}
+  .usage-token-status.ok{color:#6ee7b7}
+  .usage-token-status.bad{color:#fcd34d}
+  .usage-note{margin-top:10px;font-size:12px;line-height:1.7;color:var(--dim)}
+  .usage-note b{color:#fcd34d;font-weight:600}
+  .usage-help{margin-top:12px;font-size:12.5px;color:var(--muted)}
+  .usage-help summary{cursor:pointer;color:#aab4cc;font-size:12.5px;user-select:none}
+  .usage-help ol{margin:10px 0 8px;padding-left:20px;line-height:1.85}
+  .usage-help li{margin-bottom:2px}
+  .usage-help code{
+    background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.09);
+    border-radius:6px;padding:1px 6px;font-size:11.5px;color:#c7d2fe;
+    font-family:Consolas,Monaco,monospace;word-break:break-all;
+  }
+  .usage-help .btn-sm{margin:6px 0 2px;height:34px;font-size:12.5px}
+  .usage-help .note{font-size:12px;color:var(--dim);display:block;margin-top:6px}
+  .usage-import-actions{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 0}
+  .usage-help textarea{
+    width:100%;margin-top:8px;padding:8px 10px;border-radius:9px;
+    border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);
+    color:var(--text);font-size:11.5px;line-height:1.5;
+    font-family:Consolas,Monaco,monospace;outline:none;resize:vertical;
+    min-height:42px;box-sizing:border-box;
+  }
+  .usage-help textarea:focus{border-color:rgba(96,122,255,.65);background:rgba(255,255,255,.06)}
+  .usage-stats{margin-top:18px}
+  .usage-stats .stat-value{font-size:19px}
+  .usage-updated{font-size:12px;color:var(--dim)}
+  .usage-charts{margin-top:18px}
+  .usage-charts-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:10px}
+  .usage-range-btn{
+    padding:7px 14px;border:1px solid rgba(255,255,255,.1);
+    border-radius:9px;background:rgba(255,255,255,.04);
+    color:var(--muted);font-size:12.5px;font-weight:600;
+    cursor:pointer;transition:all .15s;font-family:inherit;
+  }
+  .usage-range-btn:hover{background:rgba(255,255,255,.08);color:var(--text)}
+  .usage-range-btn.active{
+    background:rgba(77,107,254,.15);border-color:rgba(77,107,254,.4);color:#9db2ff;
+  }
+  .usage-chart-box{
+    margin-top:14px;padding:14px 14px 6px;border-radius:13px;
+    background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);
+  }
+  .usage-chart-title{font-size:12.5px;color:var(--muted);margin-bottom:8px}
+  .usage-chart-box canvas{width:100% !important;height:200px !important}
+  .usage-table-wrap{
+    margin-top:16px;max-height:330px;overflow:auto;border-radius:12px;
+    border:1px solid rgba(255,255,255,.07);
+  }
+  .usage-table-wrap .usage-table{border-radius:0;background:transparent}
+  .usage-table-wrap .usage-table th{position:sticky;top:0;background:#161e30;z-index:1;white-space:nowrap}
+  .usage-table-wrap .usage-table td{white-space:nowrap}
+
+  /* ========== 响应式 ========== */
+  @media (max-width:580px){
+    .account-header{flex-wrap:wrap}
+    .account-select{width:100%;order:1}
+    .icon-btn{order:2}
+    .tabs{flex-direction:column;gap:4px}
+    .tab{height:36px}
+    .stats-panel{grid-template-columns:repeat(2,1fr)}
+    .date-range-picker{flex-direction:column;align-items:stretch}
+    .date-range-picker input[type="date"],.btn-sm{width:100%}
+    .usage-chart-box canvas{height:170px !important}
+  }
 </style>
 </head>
 <body>
+
+<!-- 账户管理面板 -->
+<div class="account-panel" id="account-panel" style="max-width:540px;margin:0 auto 0;padding-top:28px">
+  <div class="account-header">
+    <select id="account-selector" class="account-select">
+      <option value="">单次查询（不保存）</option>
+    </select>
+    <button id="add-account-btn" class="icon-btn" title="添加账户" type="button">+</button>
+    <button id="manage-accounts-btn" class="icon-btn" title="管理账户" type="button">⚙</button>
+  </div>
+</div>
+
 <main class="card">
   <div class="head">
     <div class="logo">&#128011;</div>
@@ -183,304 +491,187 @@
   <button id="query" class="btn" type="button">查询余额</button>
 
   <div id="alert" class="alert"></div>
-  <section id="result" class="result"></section>
+
+  <!-- 标签页导航 -->
+  <div class="tabs" id="tabs" style="display:none">
+    <button class="tab active" data-tab="balance" type="button">当前余额</button>
+    <button class="tab" data-tab="history" type="button">历史趋势</button>
+    <button class="tab" data-tab="stats" type="button">消费统计</button>
+    <button class="tab" data-tab="usage" type="button">用量统计</button>
+  </div>
+
+  <!-- 当前余额 -->
+  <section id="result" class="result tab-content active"></section>
+
+  <!-- 历史趋势 -->
+  <section id="history-section" class="tab-content" style="display:none">
+    <div class="section-header">
+      <h3>历史趋势</h3>
+      <div class="time-range-selector">
+        <button class="range-btn active" data-range="7" type="button">7天</button>
+        <button class="range-btn" data-range="30" type="button">30天</button>
+        <button class="range-btn" data-range="90" type="button">90天</button>
+        <button class="range-btn" data-range="all" type="button">全部</button>
+      </div>
+    </div>
+    <div class="chart-container" id="chart-container">
+      <div class="chart-placeholder" id="chart-placeholder">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><polyline points="7 10 12 5 17 8 21 4"/></svg>
+        <div>暂无历史数据</div>
+      </div>
+      <canvas id="balance-chart" style="display:none"></canvas>
+    </div>
+    <div class="history-list" id="history-list"></div>
+  </section>
+
+  <!-- 消费统计 -->
+  <section id="stats-section" class="tab-content" style="display:none">
+    <div class="section-header">
+      <h3>消费统计</h3>
+    </div>
+    <div class="stats-panel">
+      <div class="stat-card">
+        <span class="stat-label">今日消费</span>
+        <span class="stat-value" id="stat-today">--</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">本周消费</span>
+        <span class="stat-value" id="stat-week">--</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">本月消费</span>
+        <span class="stat-value" id="stat-month">--</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">日均消费</span>
+        <span class="stat-value" id="stat-avg">--</span>
+      </div>
+    </div>
+    <div id="stats-details"></div>
+  </section>
+
+  <!-- 用量统计 -->
+  <section id="usage-section" class="tab-content" style="display:none">
+    <div class="section-header">
+      <h3>用量统计</h3>
+      <span class="usage-updated" id="usage-updated"></span>
+    </div>
+
+    <!-- 平台 Token 配置 -->
+    <div class="usage-token-panel">
+      <div class="usage-token-head">
+        <span class="usage-token-title">平台登录 Token</span>
+        <span class="usage-token-status" id="usage-token-status">未配置</span>
+      </div>
+      <div class="field" style="margin-top:10px">
+        <input id="usage-token" type="password" placeholder="粘贴 platform.deepseek.com 的登录 Token（不是 API Key）" autocomplete="off" spellcheck="false">
+        <button id="usage-token-eye" class="eye" type="button" title="显示 / 隐藏 Token"></button>
+      </div>
+      <label class="remember" style="margin:10px 2px 0">
+        <input id="usage-token-remember" type="checkbox">
+        <span>在本机浏览器记住 Token <span class="note">（仅保存在本机浏览器中）</span></span>
+      </label>
+      <details class="usage-help">
+        <summary>如何获取 Token？（30 秒）</summary>
+        <ol>
+          <li>在浏览器中登录 <b>platform.deepseek.com</b></li>
+          <li>按 <b>F12</b> 打开开发者工具,切换到 <b>Console</b>（控制台）</li>
+          <li>粘贴以下命令并回车,Token 会自动复制到剪贴板：
+            <div style="margin:6px 0"><code>copy(JSON.parse(localStorage.userToken).value)</code></div>
+            若 copy 不可用,请执行 <code>JSON.parse(localStorage.userToken).value</code> 后手动复制输出的字符串
+          </li>
+          <li>回到本页面,粘贴到上方输入框</li>
+        </ol>
+        <button class="btn-sm" id="usage-copy-cmd" type="button">复制获取命令</button>
+        <span class="note">Token 用于读取平台用量数据,会过期;若提示失效,重新获取即可。数据来自平台内部接口,仅供参考。</span>
+      </details>
+      <div class="usage-note">
+        <b>提示：</b>用量数据来自平台内部接口,支持两种获取方式：<br>
+        ① <b>本地代理自动查询</b>——先运行 <b>启动服务器.bat</b>（代理地址 <span id="usage-proxy-label">—</span>）,粘贴平台 Token 后点“查询用量”;<br>
+        ② <b>控制台导入（万能方案）</b>——不用任何服务器,任何浏览器都能用,见下方“没有本地服务器？”。
+      </div>
+
+      <details class="usage-help">
+        <summary>没有本地服务器？用“控制台获取数据”导入（万能方案）</summary>
+        <ol>
+          <li>在浏览器中登录 <b>platform.deepseek.com</b>（保持登录状态）</li>
+          <li>按 <b>F12</b> 打开 <b>Console</b>（控制台）,粘贴「获取数据命令」并回车——数据会自动复制到剪贴板</li>
+          <li>回到本页面,点击 <b>「从剪贴板导入并显示」</b>,即可看到柱状图与明细</li>
+        </ol>
+        <div class="usage-import-actions">
+          <button class="btn-sm" id="usage-copy-fetch-cmd" type="button">复制获取数据命令</button>
+          <button class="btn-sm" id="usage-import-btn" type="button">从剪贴板导入并显示</button>
+        </div>
+        <textarea id="usage-import-text" rows="2" placeholder="若浏览器无法读取剪贴板：把复制的数据粘贴到这里,再点上面的「从剪贴板导入并显示」"></textarea>
+        <span class="note">数据只在本机浏览器里处理,不会上传到任何服务器;每次想刷新数据时,重新执行一遍「获取数据命令」即可。</span>
+      </details>
+    </div>
+
+    <button id="query-usage-btn" class="btn" type="button">查询用量</button>
+
+    <!-- 汇总卡片 -->
+    <div class="stats-panel usage-stats" id="usage-stats" style="display:none">
+      <div class="stat-card"><span class="stat-label">今日消费</span><span class="stat-value" id="usage-today-cost">--</span></div>
+      <div class="stat-card"><span class="stat-label">近 7 天消费</span><span class="stat-value" id="usage-week-cost">--</span></div>
+      <div class="stat-card"><span class="stat-label">近 30 天消费</span><span class="stat-value" id="usage-month-cost">--</span></div>
+      <div class="stat-card"><span class="stat-label">今日 Tokens</span><span class="stat-value" id="usage-today-tokens">--</span></div>
+      <div class="stat-card"><span class="stat-label">近 7 天 Tokens</span><span class="stat-value" id="usage-week-tokens">--</span></div>
+      <div class="stat-card"><span class="stat-label">近 30 天 Tokens</span><span class="stat-value" id="usage-month-tokens">--</span></div>
+    </div>
+
+    <!-- 柱状图 -->
+    <div class="usage-charts" id="usage-charts" style="display:none">
+      <div class="usage-charts-head">
+        <span class="usage-chart-title" style="margin:0">每日趋势</span>
+        <div class="time-range-selector">
+          <button class="usage-range-btn active" data-range="7" type="button">近 7 天</button>
+          <button class="usage-range-btn" data-range="30" type="button">近 30 天</button>
+        </div>
+      </div>
+      <div class="usage-chart-box">
+        <div class="usage-chart-title">每日消费（¥）</div>
+        <canvas id="usage-cost-chart"></canvas>
+      </div>
+      <div class="usage-chart-box">
+        <div class="usage-chart-title">每日 Token 用量（按类型堆叠）</div>
+        <canvas id="usage-token-chart"></canvas>
+      </div>
+    </div>
+
+    <div id="usage-results"></div>
+  </section>
+
   <div id="meta" class="meta">余额数据来自 DeepSeek 官方接口</div>
 </main>
 
-<script>
-  const $ = (s) => document.querySelector(s);
-  const API_URL = "https://api.deepseek.com/user/balance";
-  const LS_KEY = "deepseek_balance_api_key";
-  const LS_REMEMBER = "deepseek_balance_remember_key";
+<!-- 账户管理模态框 -->
+<div id="account-modal" class="modal">
+  <div class="modal-content">
+    <button class="modal-close" id="modal-close" type="button">×</button>
+    <h2>管理账户</h2>
+    <div id="account-list"></div>
+    <div class="add-account-form" id="add-account-form" style="display:none">
+      <div class="form-group">
+        <label>账户名称</label>
+        <input type="text" id="new-account-name" placeholder="例如：主账户">
+      </div>
+      <div class="form-group">
+        <label>API Key</label>
+        <input type="password" id="new-account-key" placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxx">
+      </div>
+      <div class="form-actions">
+        <button class="btn-secondary" id="cancel-add-account" type="button">取消</button>
+        <button class="btn-primary" id="save-new-account" type="button">保存</button>
+      </div>
+    </div>
+    <button class="btn-primary" id="show-add-form" type="button" style="width:100%;margin-top:14px">+ 添加新账户</button>
+  </div>
+</div>
 
-  const keyInput = $("#key");
-  const eyeBtn = $("#eye");
-  const rememberChk = $("#remember");
-  const queryBtn = $("#query");
-  const alertBox = $("#alert");
-  const resultBox = $("#result");
-  const metaEl = $("#meta");
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-  const EYE_OPEN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
-  const EYE_CLOSED = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
-  const ICON_ALERT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
-
-  let busy = false;
-
-  class UserError extends Error {}
-
-  function showAlert(kind, message) {
-    alertBox.className = "alert show " + kind;
-    alertBox.innerHTML = ICON_ALERT + "<div>" + message + "</div>";
-  }
-  function hideAlert() {
-    alertBox.className = "alert";
-  }
-
-  function fmtAmount(raw, currency) {
-    const n = Number.parseFloat(raw);
-    if (!Number.isFinite(n)) return raw == null ? "--" : String(raw);
-    const symbol = currency === "CNY" ? "\u00a5" : currency === "USD" ? "$" : "";
-    return symbol + n.toFixed(2);
-  }
-
-  const CURRENCY_NAME = { CNY: "人民币", USD: "美元" };
-
-  /* ---------- USD → CNY 汇率（多来源竞速 + 本地缓存回退） ---------- */
-  const RATE_CACHE_KEY = "deepseek_balance_usd_cny_rate";
-  const RATE_PROVIDERS = [
-    {
-      name: "open.er-api.com",
-      url: "https://open.er-api.com/v6/latest/USD",
-      pick: (j) => j && j.rates && j.rates.CNY,
-      date: (j) => isoDate(j && j.time_last_update_utc),
-    },
-    {
-      name: "exchangerate-api.com",
-      url: "https://api.exchangerate-api.com/v4/latest/USD",
-      pick: (j) => j && j.rates && j.rates.CNY,
-      date: (j) => isoDate(j && (j.time_last_update_utc || j.date)),
-    },
-    {
-      name: "currency-api (jsDelivr)",
-      url: "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json",
-      pick: (j) => j && j.usd && j.usd.cny,
-      date: (j) => (j && j.date) || "",
-    },
-  ];
-
-  function isoDate(s) {
-    const d = s ? new Date(s) : null;
-    return d && !Number.isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : "";
-  }
-  let rateMemo = null;
-
-  function fetchRateFrom(provider) {
-    return fetch(provider.url, { cache: "no-store", signal: AbortSignal.timeout(6000) })
-      .then((res) => {
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        return res.json();
-      })
-      .then((j) => {
-        const v = provider.pick(j);
-        if (typeof v !== "number" || !(v > 0)) throw new Error("invalid rate");
-        return { value: v, date: provider.date(j) || "", source: provider.name, cached: false };
-      });
-  }
-
-  function saveRateCache(r) {
-    try {
-      localStorage.setItem(RATE_CACHE_KEY, JSON.stringify({ value: r.value, date: r.date, source: r.source, ts: Date.now() }));
-    } catch (_) {}
-  }
-
-  function loadRateCache() {
-    try {
-      const raw = localStorage.getItem(RATE_CACHE_KEY);
-      if (!raw) return null;
-      const j = JSON.parse(raw);
-      if (j && typeof j.value === "number" && Date.now() - j.ts < 7 * 24 * 3600 * 1000) {
-        return { value: j.value, date: j.date || "", source: j.source || "", cached: true };
-      }
-    } catch (_) {}
-    return null;
-  }
-
-  function getUsdCnyRate() {
-    if (rateMemo) return Promise.resolve(rateMemo);
-    return new Promise((resolve) => {
-      let remaining = RATE_PROVIDERS.length;
-      let settled = false;
-      const finish = (r) => {
-        if (!settled) { settled = true; resolve(r); }
-      };
-      for (const p of RATE_PROVIDERS) {
-        fetchRateFrom(p)
-          .then((r) => { rateMemo = r; saveRateCache(r); finish(r); })
-          .catch(() => {})
-          .finally(() => { remaining -= 1; if (remaining === 0) finish(null); });
-      }
-    }).then((r) => {
-      if (r) return r;
-      const cached = loadRateCache();
-      if (cached) rateMemo = cached;
-      return cached;
-    });
-  }
-
-  function renderCnyLine(info, cur, rate) {
-    if (cur !== "USD") return "";
-    if (!rate) return '<div class="rate-hint bad">人民币折算暂不可用（汇率获取失败）</div>';
-    const usd = Number.parseFloat(info.total_balance);
-    if (!Number.isFinite(usd)) return "";
-    return (
-      '<div class="cny">\u2248 \u00a5' + (usd * rate.value).toFixed(2) + "</div>" +
-      '<div class="rate-hint">按汇率 1 USD \u2248 ' + rate.value.toFixed(4) + " CNY 估算" +
-      (rate.cached ? "（缓存值）" : "") + "</div>"
-    );
-  }
-
-  function render(data, rate) {
-    const infos = Array.isArray(data.balance_infos) ? data.balance_infos : [];
-    const ok = data.is_available === true;
-
-    const badge = ok
-      ? '<span class="badge ok">\u2713 账户可用</span>'
-      : '<span class="badge bad">! 余额不足，无法调用</span>';
-
-    let html = '<div class="status">' + badge +
-      "<span>共 " + infos.length + " 个币种账户</span></div>";
-
-    if (!infos.length) {
-      html += '<div class="bal"><div class="top"><span class="label">接口未返回余额明细</span></div></div>';
-    }
-
-    for (const info of infos) {
-      const cur = info.currency || "";
-      const curName = CURRENCY_NAME[cur] ? " · " + CURRENCY_NAME[cur] : "";
-      html +=
-        '<div class="bal">' +
-          '<div class="top">' +
-            '<span class="label">总余额</span>' +
-            '<span class="cur">' + (cur || "--") + curName + "</span>" +
-          "</div>" +
-          '<div class="total">' + fmtAmount(info.total_balance, cur) + "</div>" +
-          renderCnyLine(info, cur, rate) +
-          '<div class="rows">' +
-            '<div class="row"><span>充值余额</span><b>' + fmtAmount(info.topped_up_balance, cur) + "</b></div>" +
-            '<div class="row"><span>赠金余额</span><b>' + fmtAmount(info.granted_balance, cur) + "</b></div>" +
-          "</div>" +
-        "</div>";
-    }
-
-    resultBox.innerHTML = html;
-    resultBox.classList.add("show");
-  }
-
-  async function query() {
-    if (busy) return;
-    const key = keyInput.value.trim();
-
-    if (!key) {
-      showAlert("warn", "请先输入 API Key。");
-      keyInput.focus();
-      return;
-    }
-    if (!key.startsWith("sk-")) {
-      showAlert("warn", "提醒：DeepSeek 的 API Key 一般以 sk- 开头，请确认是否复制完整。");
-    } else {
-      hideAlert();
-    }
-
-    busy = true;
-    queryBtn.disabled = true;
-    queryBtn.innerHTML = '<span class="spinner"></span>查询中…';
-    resultBox.classList.remove("show");
-
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 20000);
-
-    try {
-      const res = await fetch(API_URL, {
-        method: "GET",
-        headers: { "Authorization": "Bearer " + key, "Accept": "application/json" },
-        signal: ctrl.signal,
-        cache: "no-store",
-      });
-
-      if (!res.ok) {
-        let detail = "";
-        try {
-          const body = await res.json();
-          detail = (body && body.error && body.error.message) || "";
-        } catch (_) {}
-
-        if (res.status === 401) throw new UserError("API Key 无效或已被禁用。请检查是否复制完整、有没有多余的空格或换行。");
-        if (res.status === 402) throw new UserError("账户余额不足。");
-        if (res.status === 429) throw new UserError("请求太频繁，请稍后再试。");
-        throw new UserError("DeepSeek 接口返回错误：HTTP " + res.status + (detail ? "（" + detail + "）" : ""));
-      }
-
-      const data = await res.json();
-
-      let rate = null;
-      const hasUsd = Array.isArray(data.balance_infos) &&
-        data.balance_infos.some((x) => x && x.currency === "USD");
-      if (hasUsd) rate = await getUsdCnyRate();
-
-      hideAlert();
-      render(data, rate);
-
-      try {
-        if (rememberChk.checked) {
-          localStorage.setItem(LS_KEY, key);
-          localStorage.setItem(LS_REMEMBER, "1");
-        } else {
-          localStorage.removeItem(LS_KEY);
-          localStorage.removeItem(LS_REMEMBER);
-        }
-      } catch (_) {}
-
-      const timeStr = new Date().toLocaleString("zh-CN", { hour12: false });
-      metaEl.innerHTML =
-        (rate
-          ? "汇率数据：" + rate.source + (rate.date ? "（" + rate.date + "）" : "") + "<br>"
-          : "") +
-        "查询时间 " + timeStr;
-    } catch (err) {
-      if (err instanceof UserError) {
-        showAlert("err", err.message);
-      } else if (err && err.name === "AbortError") {
-        showAlert("err", "请求超时（20 秒）。请检查网络状况后重试。");
-      } else {
-        showAlert("err", "无法连接 api.deepseek.com。请检查网络或代理设置；若网络正常，请尝试用 Chrome / Edge 打开本页面。");
-      }
-    } finally {
-      clearTimeout(timer);
-      busy = false;
-      queryBtn.disabled = false;
-      queryBtn.textContent = "查询余额";
-    }
-  }
-
-  eyeBtn.innerHTML = EYE_OPEN;
-  eyeBtn.addEventListener("click", () => {
-    const show = keyInput.type === "password";
-    keyInput.type = show ? "text" : "password";
-    eyeBtn.innerHTML = show ? EYE_CLOSED : EYE_OPEN;
-    keyInput.focus();
-  });
-
-  rememberChk.addEventListener("change", () => {
-    if (!rememberChk.checked) {
-      try {
-        localStorage.removeItem(LS_KEY);
-        localStorage.removeItem(LS_REMEMBER);
-      } catch (_) {}
-    }
-  });
-
-  queryBtn.addEventListener("click", query);
-  keyInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") query();
-  });
-  keyInput.addEventListener("input", () => {
-    if (alertBox.classList.contains("warn")) hideAlert();
-  });
-
-  // 页面空闲时预取汇率，点击“查询余额”时无需等待
-  window.setTimeout(() => { getUsdCnyRate(); }, 500);
-
-  (function restore() {
-    try {
-      const saved = localStorage.getItem(LS_KEY);
-      if (saved && localStorage.getItem(LS_REMEMBER) === "1") {
-        keyInput.value = saved;
-        rememberChk.checked = true;
-        query();
-      }
-    } catch (_) {}
-  })();
-</script>
+<script src="app1.js?v=20261002"></script>
+<script src="app2.js?v=20261002"></script>
 </body>
 </html>
